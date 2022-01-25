@@ -26,7 +26,7 @@ type reqRepRequest struct{
 type ReqRepServerHandler func(interface{}) ReqRepResponse
 
 
-func NewReqRepClient(host, port string, protocol Protocol, context *zmq.Context) (*ReqRepServer, error){
+func NewReqRepServer(host, port string, protocol Protocol, context *zmq.Context) (*ReqRepServer, error){
 	server, err := NewServer(host, port, protocol, zmq.REP, context)
 	if err != nil{
 		return nil, err

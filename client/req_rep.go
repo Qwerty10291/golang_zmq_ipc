@@ -64,3 +64,25 @@ func (c *ReqRepClient) Request(endpoint string, data interface{}) (*ReqRepRespon
 	}
 	return &response, err
 }
+
+func (c ReqRepClient) RequestRaw(endpoint string, data interface{}) ([]byte, error) {
+	if !c.isConnected {
+		return nil, errors.New("socket is not connected")
+	}
+	message, err := json.Marshal(ReqRepRequest{
+		Endpoint: endpoint,
+		Data:     data,
+	})
+	if err != nil {
+		return nil,err
+	}
+	_, err = c.socket.SendBytes(message, 0)
+	if err != nil {
+		return nil, err
+	}
+	responseData, err := c.socket.RecvBytes(0)
+	if err != nil {
+		return nil, err
+	}
+	return responseData, nil
+}

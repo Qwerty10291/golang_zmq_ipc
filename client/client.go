@@ -39,6 +39,7 @@ func (c *Client) Connect() error{
 	if err != nil{
 		return err
 	}
+	fmt.Printf("connecting to %s://%s:%s\n", c.Protocol, c.Host, c.Port)
 	c.isConnected = true
 	return nil
 }
