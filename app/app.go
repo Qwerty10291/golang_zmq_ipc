@@ -15,7 +15,7 @@ import (
 
 type App struct {
 	Name      string
-	Servers   map[string]objects.ServerInterface
+	Servers   map[string]objects.Server
 	OtherApps map[string]objects.App
 
 	controllerClient *client.ReqRepClient
@@ -29,7 +29,7 @@ type App struct {
 func NewApp(appName string, config AppConfig, zmqContext *zmq4.Context, logger *log.Logger) *App {
 	return &App{
 		Name:             appName,
-		Servers:          map[string]objects.ServerInterface{},
+		Servers:          map[string]objects.Server{},
 		OtherApps:        map[string]objects.App{},
 		controllerClient: &client.ReqRepClient{},
 		controllerServer: &server.ReqRepServer{},
@@ -89,9 +89,9 @@ func (a *App) WaitForControllerInit() error {
 	return nil
 }
 
-func (a *App) NewServer(serverName string, socketType objects.SocketType, protocol server.Protocol) (objects.ServerInterface, error) {
+func (a *App) NewServer(serverName string, socketType objects.SocketType, protocol server.Protocol, context *zmq4.Context) (objects.ServerInterface, error) {
 	if server, ok := a.Servers[serverName]; ok {
-		return server, nil
+		return a.createServer(server, context)
 	} else {
 		data, err := a.controllerClient.RequestRaw("register_server", controllerRegisterServerRequest{
 			AppName:    a.Name,
@@ -107,20 +107,20 @@ func (a *App) NewServer(serverName string, socketType objects.SocketType, protoc
 		if err != nil {
 			return nil, err
 		}
-		server, err := a.createServer(serverData)
+		server, err := a.createServer(serverData, context)
 		if err != nil {
 			return nil, err
 		}
-		a.Servers[serverName] = server
+		a.Servers[serverName] = serverData
 		return server, nil
 	}
 }
 
-func (a *App) NewClient(appName string, serverName string) (objects.Client, error) {
+func (a *App) NewClient(appName string, serverName string, context *zmq4.Context) (objects.Client, error) {
 	if app, ok := a.OtherApps[appName]; ok {
 		for _, server := range app.Servers {
 			if server.Name == serverName {
-				return a.createClient(server)
+				return a.createClient(server, context)
 			}
 		}
 		return nil, fmt.Errorf("sever with name %s not found in %s", serverName, appName)
@@ -132,7 +132,7 @@ func (a *App) NewClient(appName string, serverName string) (objects.Client, erro
 		if app, ok := a.OtherApps[appName]; ok {
 			for _, server := range app.Servers {
 				if server.Name == serverName {
-					return a.createClient(server)
+					return a.createClient(server, context)
 				}
 			}
 			return nil, fmt.Errorf("sever with name %s not found in %s", serverName, appName)
@@ -229,16 +229,12 @@ func (a *App) restoreFromControllerResponse(app objects.App) error {
 		return err
 	}
 	for _, serverData := range app.Servers {
-		server, err := a.createServer(serverData)
-		if err != nil {
-			return err
-		}
-		a.Servers[serverData.Name] = server
+		a.Servers[serverData.Name] = serverData
 	}
 	return nil
 }
 
-func (a *App) createServer(serverData objects.Server) (objects.ServerInterface, error) {
+func (a *App) createServer(serverData objects.Server, context *zmq4.Context) (objects.ServerInterface, error) {
 	switch serverData.SocketType {
 	case int(objects.PUB_SERVER):
 		a.logger.Printf("new pub_sub server: ip:%s port:%d protocol:%s", serverData.Ip, serverData.Port, serverData.Protocol)
@@ -251,14 +247,14 @@ func (a *App) createServer(serverData objects.Server) (objects.ServerInterface, 
 	}
 }
 
-func (a *App) createClient(serverData objects.Server) (objects.Client, error) {
+func (a *App) createClient(serverData objects.Server, context *zmq4.Context) (objects.Client, error) {
 	switch serverData.SocketType {
 	case int(objects.PUB_SERVER):
 		a.logger.Printf("new pub_sub client: ip:%s port:%d protocol:%s", serverData.Ip, serverData.Port, serverData.Protocol)
-		return client.NewPubSubClient(serverData.Ip, strconv.Itoa(serverData.Port), client.Protocol(serverData.Protocol), a.zmqContext)
+		return client.NewPubSubClient(serverData.Ip, strconv.Itoa(serverData.Port), client.Protocol(serverData.Protocol), context)
 	case int(objects.REP_SERVER):
 		a.logger.Printf("new req_rep client: ip:%s port:%d protocol:%s", serverData.Ip, serverData.Port, serverData.Protocol)
-		return client.NewReqRepClient(serverData.Ip, strconv.Itoa(serverData.Port), client.Protocol(serverData.Protocol), a.zmqContext, 0)
+		return client.NewReqRepClient(serverData.Ip, strconv.Itoa(serverData.Port), client.Protocol(serverData.Protocol), context, 0)
 	default:
 		return nil, fmt.Errorf("socket with id %d not found", serverData.SocketType)
 	}
