@@ -40,6 +40,12 @@ func (s *PubSubServer) Send(topic string, message interface{}) error{
 	if err != nil{
 		return err
 	}
-	_, err = s.socket.SendBytes(data, 0)
-	return err
+	n, err := s.socket.SendBytes(data, 0)
+	if err != nil{
+		return err
+	}
+	if n == 0{
+		return errors.New("null bytes was sended")
+	}
+	return nil
 }
