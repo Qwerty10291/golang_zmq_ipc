@@ -29,8 +29,8 @@ func NewReqRepClient(host, port string, protocol Protocol, context *zmq4.Context
 	if err != nil {
 		return nil, err
 	}
-	if timeout > 0{
-		client.socket.SetRcvtimeo(timeout)
+	if timeout > 0 {
+		client.Socket.SetRcvtimeo(timeout)
 	}
 	return &ReqRepClient{
 		Client:  *client,
@@ -47,19 +47,19 @@ func (c *ReqRepClient) Request(endpoint string, data interface{}) (*ReqRepRespon
 		Data:     data,
 	})
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	_, err = c.socket.SendBytes(message, 0)
+	_, err = c.Socket.SendBytes(message, 0)
 	if err != nil {
 		return nil, err
 	}
-	responseData, err := c.socket.RecvBytes(0)
+	responseData, err := c.Socket.RecvBytes(0)
 	if err != nil {
 		return nil, err
 	}
 	response := ReqRepResponse{}
 	err = json.Unmarshal(responseData, &response)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 	return &response, err
@@ -74,13 +74,13 @@ func (c ReqRepClient) RequestRaw(endpoint string, data interface{}) ([]byte, err
 		Data:     data,
 	})
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	_, err = c.socket.SendBytes(message, 0)
+	_, err = c.Socket.SendBytes(message, 0)
 	if err != nil {
 		return nil, err
 	}
-	responseData, err := c.socket.RecvBytes(0)
+	responseData, err := c.Socket.RecvBytes(0)
 	if err != nil {
 		return nil, err
 	}

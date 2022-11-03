@@ -7,18 +7,18 @@ import (
 	zmq "github.com/pebbe/zmq4"
 )
 
-type PubSubServer struct{
+type PubSubServer struct {
 	Server
 }
 
 type pubSubFrame struct {
-	Topic string `json:"topic"`
-	Data interface{} `json:"data"`
+	Topic string      `json:"topic"`
+	Data  interface{} `json:"data"`
 }
 
-func NewPubSubServer(host, port string, protocol Protocol, context *zmq.Context,) (*PubSubServer, error) {
+func NewPubSubServer(host, port string, protocol Protocol, context *zmq.Context) (*PubSubServer, error) {
 	server, err := NewServer(host, port, protocol, zmq.PUB, context)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 	return &PubSubServer{
@@ -26,9 +26,8 @@ func NewPubSubServer(host, port string, protocol Protocol, context *zmq.Context,
 	}, nil
 }
 
-
-func (s *PubSubServer) Send(topic string, message interface{}) error{
-	if !s.isBinded{
+func (s *PubSubServer) Send(topic string, message interface{}) error {
+	if !s.isBinded {
 		return errors.New("socket is not binded")
 	}
 	frame := pubSubFrame{
@@ -37,14 +36,14 @@ func (s *PubSubServer) Send(topic string, message interface{}) error{
 	}
 
 	data, err := json.Marshal(frame)
-	if err != nil{
+	if err != nil {
 		return err
 	}
-	n, err := s.socket.SendBytes(data, 0)
-	if err != nil{
+	n, err := s.Socket.SendBytes(data, 0)
+	if err != nil {
 		return err
 	}
-	if n == 0{
+	if n == 0 {
 		return errors.New("null bytes was sended")
 	}
 	return nil

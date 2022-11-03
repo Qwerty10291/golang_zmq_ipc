@@ -1,11 +1,15 @@
 package objects
 
+import "github.com/pebbe/zmq4"
+
 type SocketType int16
 
 const (
 	REP_SERVER  SocketType = 4
 	PUB_SERVER  SocketType = 1
 	PUSH_SERVER SocketType = 8
+	ROUTER_SERVER SocketType = 6
+	DEALER_SERVER SocketType = 5
 )
 
 type App struct {
@@ -26,9 +30,11 @@ type Server struct {
 type Client interface {
 	Connect() error
 	Close() error
+	GetSocket() *zmq4.Socket
 }
 
 type ServerInterface interface {
 	Bind() error
 	Close() error
+	GetSocket() *zmq4.Socket
 }

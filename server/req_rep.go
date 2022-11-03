@@ -7,28 +7,27 @@ import (
 	zmq "github.com/pebbe/zmq4"
 )
 
-type ReqRepServer struct{
+type ReqRepServer struct {
 	Server
 	handlers map[string]ReqRepServerHandler
 }
 
-type ReqRepResponse struct{
-	Status bool `json:"status"`
-	Data interface{} `json:"data"`
-	Error string `json:"error"`
+type ReqRepResponse struct {
+	Status bool        `json:"status"`
+	Data   interface{} `json:"data"`
+	Error  string      `json:"error"`
 }
 
-type reqRepRequest struct{
+type reqRepRequest struct {
 	Endpoint string      `json:"type"`
 	Data     interface{} `json:"data"`
 }
 
 type ReqRepServerHandler func(interface{}) ReqRepResponse
 
-
-func NewReqRepServer(host, port string, protocol Protocol, context *zmq.Context) (*ReqRepServer, error){
+func NewReqRepServer(host, port string, protocol Protocol, context *zmq.Context) (*ReqRepServer, error) {
 	server, err := NewServer(host, port, protocol, zmq.REP, context)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 	return &ReqRepServer{
@@ -42,7 +41,7 @@ func (s *ReqRepServer) NewHandler(endpoint string, handler ReqRepServerHandler) 
 }
 
 func (s *ReqRepServer) Start() error {
-	if !s.isBinded{
+	if !s.isBinded {
 		return errors.New("socket is not binded")
 	}
 	go s.Listener()
@@ -50,23 +49,23 @@ func (s *ReqRepServer) Start() error {
 }
 
 func (s *ReqRepServer) Listener() {
-	for s.isBinded{
-		data, err := s.socket.RecvBytes(0)
-		if err != nil{
+	for s.isBinded {
+		data, err := s.Socket.RecvBytes(0)
+		if err != nil {
 			panic(err)
 		}
-		request :=  reqRepRequest{}
+		request := reqRepRequest{}
 		err = json.Unmarshal(data, &request)
-		if err != nil{
+		if err != nil {
 			panic(err)
 		}
-		if handler, ok := s.handlers[request.Endpoint]; ok{
+		if handler, ok := s.handlers[request.Endpoint]; ok {
 			resp, err := json.Marshal(handler(request))
-			if err != nil{
+			if err != nil {
 				panic(err)
 			}
-			_, err = s.socket.SendBytes(resp, 0)
-			if err != nil{
+			_, err = s.Socket.SendBytes(resp, 0)
+			if err != nil {
 				panic(err)
 			}
 		}

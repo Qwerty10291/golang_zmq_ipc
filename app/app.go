@@ -242,6 +242,12 @@ func (a *App) createServer(serverData objects.Server, context *zmq4.Context) (ob
 	case int(objects.REP_SERVER):
 		a.logger.Printf("new pub_sub server: ip:%s port:%d protocol:%s", serverData.Ip, serverData.Port, serverData.Protocol)
 		return server.NewPubSubServer("*", strconv.Itoa(serverData.Port), server.Protocol(serverData.Protocol), a.zmqContext)
+	case int(objects.DEALER_SERVER):
+		a.logger.Printf("new dealer server: ip:%s port:%d protocol:%s", serverData.Ip, serverData.Port, serverData.Protocol)
+		return server.NewDealerServer("*", strconv.Itoa(serverData.Port), server.Protocol(serverData.Protocol), a.zmqContext)
+	case int(objects.ROUTER_SERVER):
+		a.logger.Printf("new router server: ip:%s port:%d protocol:%s", serverData.Ip, serverData.Port, serverData.Protocol)
+		return server.NewRouterServer("*", strconv.Itoa(serverData.Port), server.Protocol(serverData.Protocol), a.zmqContext)
 	default:
 		return nil, fmt.Errorf("socket with id %d not found", serverData.SocketType)
 	}
@@ -255,6 +261,12 @@ func (a *App) createClient(serverData objects.Server, context *zmq4.Context) (ob
 	case int(objects.REP_SERVER):
 		a.logger.Printf("new req_rep client: ip:%s port:%d protocol:%s", serverData.Ip, serverData.Port, serverData.Protocol)
 		return client.NewReqRepClient(serverData.Ip, strconv.Itoa(serverData.Port), client.Protocol(serverData.Protocol), context, 0)
+	case int(objects.DEALER_SERVER):
+		a.logger.Printf("new dealer client: ip:%s port:%d protocol:%s", serverData.Ip, serverData.Port, serverData.Protocol)
+		return client.NewDealerClient(serverData.Ip, strconv.Itoa(serverData.Port), client.Protocol(serverData.Protocol), context)
+	case int(objects.ROUTER_SERVER):
+		a.logger.Printf("new router client: ip:%s port:%d protocol:%s", serverData.Ip, serverData.Port, serverData.Protocol)
+		return client.NewRouterClient(serverData.Ip, strconv.Itoa(serverData.Port), client.Protocol(serverData.Protocol), context, 0)
 	default:
 		return nil, fmt.Errorf("socket with id %d not found", serverData.SocketType)
 	}
