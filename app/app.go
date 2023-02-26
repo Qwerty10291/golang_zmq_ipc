@@ -67,13 +67,19 @@ func (a *App) Init() error {
 	if err != nil {
 		return err
 	}
+
+	err = a.startControllerServer()
+	if err != nil{
+		return err
+	}
+	
 	a.logger.Println("initialized")
 	return nil
 }
 
 func (a *App) WaitForControllerInit() error {
 	for {
-		resp, err := a.controllerClient.RequestRaw("ping", struct{}{})
+		resp, err := a.controllerClient.RequestRaw("heartbeat", struct{}{})
 		if err != nil {
 			return err
 		}
@@ -188,7 +194,7 @@ func (a *App) register() error {
 		return a.restoreFromControllerResponse(alreadyExistsData.App)
 	} else {
 		a.logger.Println("app does nor existed")
-		a.controllerServer, err = a.initControllerServer(appInfo)
+		a.controllerServer, err = a.controllerServFromResp(appInfo)
 		if err != nil {
 			return err
 		}
@@ -197,19 +203,27 @@ func (a *App) register() error {
 	return nil
 }
 
-func (a *App) initControllerServer(resp serverRegisterAppResponse) (*server.ReqRepServer, error) {
+func (a *App) controllerServFromResp(resp serverRegisterAppResponse) (*server.ReqRepServer, error) {
 	port := strconv.Itoa(resp.Port)
 	var err error
 	server, err := server.NewReqRepServer("*", port, server.TCP, a.zmqContext)
 	if err != nil{
 		return nil, err
 	}
-	err = server.Bind()
-	if err != nil{
-		return nil, err
-	}
-	server.Start()
 	return server, nil
+}
+
+func (a *App) startControllerServer() error {
+	if err := a.controllerServer.Bind(); err != nil{
+		return err
+	}
+	a.controllerServer.NewHandler("heartbeat", func(i interface{}) server.ReqRepResponse {
+		return server.ReqRepResponse{
+			Status: true,
+			Data:   true,
+		}
+	})
+	return a.controllerServer.Start()
 }
 
 func (a *App) updateOtherApps() error {
