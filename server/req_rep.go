@@ -12,11 +12,7 @@ type ReqRepServer struct {
 	handlers map[string]ReqRepServerHandler
 }
 
-type ReqRepResponse struct {
-	Status bool        `json:"status"`
-	Data   interface{} `json:"data"`
-	Error  string      `json:"error"`
-}
+type ReqRepResponse interface{}
 
 type reqRepRequest struct {
 	Endpoint string      `json:"type"`

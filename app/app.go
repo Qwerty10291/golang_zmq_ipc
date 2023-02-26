@@ -218,10 +218,7 @@ func (a *App) startControllerServer() error {
 		return err
 	}
 	a.controllerServer.NewHandler("heartbeat", func(i interface{}) server.ReqRepResponse {
-		return server.ReqRepResponse{
-			Status: true,
-			Data:   true,
-		}
+		return true
 	})
 	return a.controllerServer.Start()
 }
