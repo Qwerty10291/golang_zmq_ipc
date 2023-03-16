@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"errors"
+	"log"
 
 	zmq "github.com/pebbe/zmq4"
 )
@@ -55,12 +56,14 @@ func (c *PubSubClient) listener() {
 	for c.isConnected {
 		data, err := c.Socket.RecvBytes(0)
 		if err != nil {
-			panic(err)
+			log.Printf("failed to recv bytes from pubsub client %s:%s :%s", c.Host, c.Port, err)
+			continue
 		}
 		message := pubSubFrame{}
 		err = json.Unmarshal(data, &message)
 		if err != nil {
-			panic(err)
+			log.Printf("failed to parse message from pubsub client %s:%s :%s", c.Host, c.Port, err)
+			continue
 		}
 		c.topicHandlers[message.Topic](message.Data)
 	}

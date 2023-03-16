@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"log"
 
 	zmq "github.com/pebbe/zmq4"
 )
@@ -48,13 +49,17 @@ func (s *ReqRepServer) Listener() {
 	for s.isBinded {
 		data, err := s.Socket.RecvBytes(0)
 		if err != nil {
-			panic(err)
+			log.Printf("failed to recv bytes from %s:%s", s.Port, err)
+			continue
 		}
+
 		request := reqRepRequest{}
 		err = json.Unmarshal(data, &request)
 		if err != nil {
-			panic(err)
+			log.Printf("failed to parse json request on socket %s:%s", s.Port, err)
+			continue
 		}
+
 		if handler, ok := s.handlers[request.Endpoint]; ok {
 			resp, err := json.Marshal(handler(request))
 			if err != nil {
@@ -62,8 +67,10 @@ func (s *ReqRepServer) Listener() {
 			}
 			_, err = s.Socket.SendBytes(resp, 0)
 			if err != nil {
-				panic(err)
+				log.Printf("failed to send response from %s:%s", s.Port, err)
+				continue
 			}
 		}
+		
 	}
 }
