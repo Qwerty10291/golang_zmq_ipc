@@ -14,9 +14,10 @@ import (
 )
 
 type App struct {
-	Name      string
-	Servers   map[string]objects.Server
-	OtherApps map[string]objects.App
+	Name        string
+	Servers     map[string]objects.Server
+	OtherApps   map[string]objects.App
+	metricsPort int
 
 	controllerClient *client.ReqRepClient
 	controllerServer *server.ReqRepServer
@@ -53,7 +54,7 @@ func (a *App) Init() error {
 		return err
 	}
 	err = a.controllerClient.Connect()
-	if err != nil{
+	if err != nil {
 		log.Println("error when connecting controller host")
 		return err
 	}
@@ -69,10 +70,10 @@ func (a *App) Init() error {
 	}
 
 	err = a.startControllerServer()
-	if err != nil{
+	if err != nil {
 		return err
 	}
-	
+
 	a.logger.Println("initialized")
 	return nil
 }
@@ -175,6 +176,26 @@ func (a *App) WaitForApp(appName string) error {
 	}
 }
 
+func (a *App) GetMetricsPort() (int, error) {
+	if a.metricsPort != 0{
+		return a.metricsPort, nil
+	}
+
+	data, err := a.controllerClient.RequestRaw("enable_metrics", map[string]string{
+		"app_name": a.Name,
+	})
+	if err != nil{
+		return 0, err
+	}
+	port := 0
+	err = json.Unmarshal(data, &port)
+	if err != nil{
+		return 0, err
+	}
+	a.metricsPort = port
+	return port, nil
+}
+
 func (a *App) register() error {
 	response, err := a.controllerClient.RequestRaw("register_app", struct {
 		Name string `json:"name"`
@@ -207,14 +228,14 @@ func (a *App) controllerServFromResp(resp serverRegisterAppResponse) (*server.Re
 	port := strconv.Itoa(resp.Port)
 	var err error
 	server, err := server.NewReqRepServer("*", port, server.TCP, a.zmqContext)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 	return server, nil
 }
 
 func (a *App) startControllerServer() error {
-	if err := a.controllerServer.Bind(); err != nil{
+	if err := a.controllerServer.Bind(); err != nil {
 		return err
 	}
 	a.controllerServer.NewHandler("heartbeat", func(i interface{}) server.ReqRepResponse {
@@ -242,6 +263,10 @@ func (a *App) restoreFromControllerResponse(app objects.App) error {
 	for _, serverData := range app.Servers {
 		a.Servers[serverData.Name] = serverData
 	}
+	if app.MetricsPort != nil{
+		a.metricsPort = *app.MetricsPort
+	}
+
 	return nil
 }
 
